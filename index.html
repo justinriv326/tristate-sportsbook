@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tri-State Sportsbook</title>
+<meta name="description" content="Live odds for every Tri-State League matchup, recalculated from Sleeper every 30 seconds.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0f0d;--panel:#121815;--panel2:#18201c;--line:#24302a;--line2:#2f3d36;
+  --text:#e9efeb;--muted:#8a9a91;--dim:#5d6c64;
+  --green:#3ddc84;--green-d:#1f7a4a;--red:#ff5c5c;--gold:#ffc94d;--blue:#5aa9ff;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text)}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased;min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px 48px}
+header{position:sticky;top:0;z-index:10;background:rgba(11,15,13,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar{max-width:1180px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:26px;letter-spacing:.5px;line-height:1;text-transform:uppercase}
+.brand span{color:var(--green)}
+.sub{color:var(--muted);font-size:12px;font-weight:500}
+.spacer{flex:1}
+.live{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.dot.on{background:var(--green);box-shadow:0 0 0 0 rgba(61,220,132,.6);animation:pulse 2s infinite}
+.dot.err{background:var(--red)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(61,220,132,.55)}70%{box-shadow:0 0 0 8px rgba(61,220,132,0)}100%{box-shadow:0 0 0 0 rgba(61,220,132,0)}}
+select{background:var(--panel2);color:var(--text);border:1px solid var(--line2);border-radius:8px;padding:7px 10px;font:600 13px Inter,sans-serif}
+.banner{margin:16px 0 0;padding:10px 14px;border-radius:10px;background:#2a1414;border:1px solid #5a2424;color:#ffb3b3;font-size:13px;display:none}
+.intro{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 14px;color:var(--muted);font-size:12px}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 11px}
+.chip b{color:var(--text)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(520px,1fr));gap:14px}
+@media (max-width:600px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.6px}
+.tag{padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:.6px}
+.tag.live{background:rgba(255,92,92,.14);color:var(--red)}
+.tag.pre{background:rgba(90,169,255,.12);color:var(--blue)}
+.tag.final{background:var(--panel2);color:var(--muted)}
+.cols{display:grid;grid-template-columns:1fr 78px 78px 78px;align-items:center;padding:0 14px}
+.cols.head{padding-top:8px;padding-bottom:4px;font-size:10px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.7px}
+.cols.head div:not(:first-child){text-align:center}
+.team{display:flex;align-items:center;gap:10px;padding:8px 0;min-width:0}
+.av{width:34px;height:34px;border-radius:50%;background:var(--panel2);flex:none;object-fit:cover;border:1px solid var(--line2)}
+.tn{min-width:0}
+.tn .n{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tn .m{font-size:11px;color:var(--muted)}
+.score{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;margin-left:auto;padding-left:8px;font-variant-numeric:tabular-nums}
+.btn{margin:4px 3px;background:var(--panel2);border:1px solid var(--line2);border-radius:8px;text-align:center;padding:6px 2px;line-height:1.15}
+.btn .l{font-size:11px;color:var(--muted);font-weight:600}
+.btn .o{font-weight:700;font-size:13px;color:var(--green);font-variant-numeric:tabular-nums}
+.btn.off .o{color:var(--dim)}
+.btn.up .o::after{content:" ▲";font-size:9px;color:var(--green)}
+.btn.down .o::after{content:" ▼";font-size:9px;color:var(--red)}
+.btn.won{border-color:var(--green-d);background:rgba(61,220,132,.08)}
+.prob{padding:8px 14px 12px}
+.pbar{height:6px;border-radius:999px;background:var(--panel2);overflow:hidden;display:flex}
+.pbar i{display:block;height:100%;background:var(--green);transition:width .6s ease}
+.pbar i+i{background:var(--line2)}
+.prow{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:6px;gap:8px;flex-wrap:wrap}
+.prow b{color:var(--text)}
+.spark{display:block;width:100%;height:34px;margin-top:8px}
+.foot{display:flex;border-top:1px solid var(--line)}
+.foot button{flex:1;background:none;border:0;color:var(--muted);font:600 12px Inter,sans-serif;padding:10px;cursor:pointer}
+.foot button:hover{color:var(--text);background:var(--panel2)}
+.props{display:none;border-top:1px solid var(--line);padding:6px 0 10px}
+.card.open .props{display:block}
+.ptitle{padding:8px 14px 4px;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.pl{display:grid;grid-template-columns:40px 1fr 70px 46px 92px;align-items:center;gap:6px;padding:5px 14px;font-size:12px}
+.pl:nth-child(even){background:rgba(255,255,255,.015)}
+.pl .slot{color:var(--dim);font-weight:700;font-size:10px}
+.pl .who{min-width:0}
+.pl .who div:first-child{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl .who div+div{color:var(--muted);font-size:10px}
+.pl .gs{color:var(--muted);font-size:10px;text-align:right}
+.pl .gs.in{color:var(--red);font-weight:700}
+.pl .pts{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.pl .ou{text-align:right;color:var(--green);font-weight:600;font-variant-numeric:tabular-nums}
+.pl .ou.na{color:var(--dim)}
+.inj{color:var(--red);font-weight:700}
+.how{margin-top:28px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;color:var(--muted);font-size:13px}
+.how h3{font-family:'Barlow Condensed',sans-serif;color:var(--text);font-size:18px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.how p+p{margin-top:6px}
+.skeleton{height:250px;border-radius:var(--radius);background:linear-gradient(90deg,var(--panel) 0%,var(--panel2) 50%,var(--panel) 100%);background-size:200% 100%;animation:sh 1.4s infinite}
+@keyframes sh{to{background-position:-200% 0}}
+@media (max-width:600px){
+  .brand{font-size:22px}
+  .cols{grid-template-columns:1fr 60px 60px 66px;padding:0 10px}
+  .cols.head{font-size:9px;letter-spacing:.3px}
+  .av{display:none}
+  .team{gap:6px}
+  .tn .n{white-space:normal;font-size:13px;line-height:1.2}
+  .tn .m{font-size:10px;white-space:nowrap}
+  .score{font-size:18px;padding-left:4px}
+  .btn{margin:4px 2px;padding:5px 1px}
+  .btn .l{font-size:10px}
+  .btn .o{font-size:12px}
+  .intro{gap:6px}
+  .pl{grid-template-columns:30px 1fr 56px 40px 78px;padding:5px 10px;gap:4px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div>
+      <div class="brand">Tri-State <span>Sportsbook</span></div>
+      <div class="sub" id="leagueSub">The Tri-State League · live odds</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="live"><span class="dot" id="dot"></span><span id="fresh">Loading…</span></div>
+    <select id="week" aria-label="Week"></select>
+  </div>
+</header>
+<main class="wrap">
+  <div class="banner" id="banner"></div>
+  <div class="intro" id="intro"></div>
+  <div class="grid" id="grid">
+    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+  </div>
+  <section class="how">
+    <h3>How the lines work</h3>
+    <p>Every starter gets an expected score from Sleeper's half-PPR projection. During games, a player's line is the points he already has plus his projection scaled by how much of his NFL game is left. Team totals add those up, and the win probability comes from how far apart the totals are and how much of the game is still left to play.</p>
+    <p>Moneylines carry a small house edge like a real book. Spreads and totals sit at -110 and the line itself moves. Everything recalculates from live Sleeper scoring every 30 seconds. It's for bragging rights only; no real money moves through this page.</p>
+  </section>
+</main>
+<script>
+(() => {
+const LEAGUE = '1379912744106491904';
+const SL = 'https://api.sleeper.app';
+const REFRESH_MS = 30000;
+const PROJ_TTL = 10 * 60 * 1000;
+const VIG = 0.045;
+const ESPN_FIX = { WSH: 'WAS', JAC: 'JAX', LA: 'LAR' };
+
+const S = { league: null, users: {}, rosters: {}, nfl: null, week: null, slots: [],
+  proj: {}, projAt: 0, projWeek: null, games: {}, matchups: [], lastOk: 0, open: new Set(), hist: {} };
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const j = async url => { const r = await fetch(url, { cache: 'no-store' }); if (!r.ok) throw new Error(r.status + ' ' + url); return r.json(); };
+
+// ---------- math ----------
+function erf(x){ const s=Math.sign(x); x=Math.abs(x);
+  const t=1/(1+0.3275911*x); const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x); return s*y; }
+const Phi = z => 0.5*(1+erf(z/Math.SQRT2));
+function american(p){
+  if (p >= 0.995 || p <= 0.005) return null;
+  const imp = Math.min(0.99, p*(1+VIG));
+  const v = imp >= 0.5 ? -100*imp/(1-imp) : 100*(1-imp)/imp;
+  const r = Math.round(v/5)*5;
+  return r > 0 ? '+' + r : String(r);
+}
+const half = x => Math.floor(x) + 0.5;
+const fmt = (x,d=1) => (Math.round(x*Math.pow(10,d))/Math.pow(10,d)).toFixed(d);
+
+// ---------- games ----------
+function parseGame(ev){
+  const st = ev.status, t = st.type;
+  let f = 1, label = '', state = t.state;
+  if (state === 'post') { f = 0; label = 'Final'; }
+  else if (state === 'in') {
+    if (t.name === 'STATUS_HALFTIME') { f = 0.5; label = 'Half'; }
+    else {
+      const [m,s] = String(st.displayClock||'0:00').split(':').map(Number);
+      const secs = (m||0)*60 + (s||0), p = st.period || 1;
+      f = p <= 4 ? Math.max(0, ((4-p)*900 + secs)/3600) : 0.02;
+      label = (p <= 4 ? 'Q'+p : 'OT') + ' ' + st.displayClock;
+    }
+  } else {
+    const d = new Date(ev.date);
+    label = d.toLocaleDateString(undefined,{weekday:'short'}) + ' ' + d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  }
+  return { f, label, state };
+}
+async function loadGames(week){
+  const season = S.nfl.season;
+  const e = await j(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&week=${week}&dates=${season}`);
+  const g = {};
+  for (const ev of e.events || []) {
+    const info = parseGame(ev);
+    for (const c of ev.competitions[0].competitors) {
+      const ab = ESPN_FIX[c.team.abbreviation] || c.team.abbreviation;
+      g[ab] = info;
+    }
+  }
+  S.games = g;
+}
+
+// ---------- data ----------
+async function loadStatic(){
+  const [league, users, rosters, nfl] = await Promise.all([
+    j(`${SL}/v1/league/${LEAGUE}`), j(`${SL}/v1/league/${LEAGUE}/users`),
+    j(`${SL}/v1/league/${LEAGUE}/rosters`), j(`${SL}/v1/state/nfl`)]);
+  S.league = league; S.nfl = nfl;
+  S.slots = league.roster_positions.filter(p => p !== 'BN' && p !== 'IR' && p !== 'TAXI');
+  for (const u of users) S.users[u.user_id] = u;
+  for (const r of rosters) S.rosters[r.roster_id] = r;
+  $('leagueSub').textContent = `${league.name} · ${league.season} · live odds`;
+  const cur = Math.max(1, Number(nfl.display_week || nfl.week || 1));
+  const sel = $('week');
+  sel.innerHTML = '';
+  for (let w = 1; w <= Math.min(18, Math.max(cur, 1)); w++) {
+    const o = document.createElement('option'); o.value = w; o.textContent = 'Week ' + w; sel.appendChild(o);
+  }
+  sel.value = cur; S.week = cur;
+}
+async function loadProj(week, force){
+  if (!force && S.projWeek === week && Date.now() - S.projAt < PROJ_TTL) return;
+  const pos = ['QB','RB','WR','TE','K'].map(p => 'position[]='+p).join('&');
+  const arr = await j(`${SL}/projections/nfl/${S.nfl.season}/${week}?season_type=regular&${pos}`);
+  const m = {};
+  for (const p of arr) m[p.player_id] = p;
+  S.proj = m; S.projAt = Date.now(); S.projWeek = week;
+}
+
+function teamInfo(rid){
+  const r = S.rosters[rid] || {}, u = S.users[r.owner_id] || {};
+  const name = (u.metadata && u.metadata.team_name && u.metadata.team_name.trim()) || u.display_name || ('Team ' + rid);
+  const av = (u.metadata && u.metadata.avatar) || (u.avatar ? `https://sleepercdn.com/avatars/thumbs/${u.avatar}` : '');
+  const st = r.settings || {};
+  return { name, av, rec: `${st.wins||0}-${st.losses||0}${st.ties ? '-' + st.ties : ''}`, owner: u.display_name || '' };
+}
+
+function evalTeam(m){
+  let mean = 0, varr = 0, cur = 0, left = 0, openMean = 0, openVar = 0;
+  const players = [];
+  (m.starters || []).forEach((pid, i) => {
+    const pts = (m.starters_points || [])[i] || 0;
+    const pr = S.proj[pid];
+    const pl = pr && pr.player || {};
+    const pos = pl.position || (pr && pr.stats ? '' : '');
+    const team = (pr && pr.team) || pl.team || '';
+    const inj = pl.injury_status || '';
+    let mu = pr && pr.stats ? (pr.stats.pts_half_ppr || 0) : 0;
+    if (/^(Out|IR|Sus|PUP|NA|DNR)/i.test(inj)) mu = 0;
+    if (pid === '0' || !pid) mu = 0;
+    const sd = mu <= 0 ? 0 : (pos === 'K' ? 4 : 0.5*mu + 2);
+    const g = S.games[team];
+    const f = g ? g.f : 0;
+    const exp = pts + mu*f;
+    cur += pts; mean += exp; varr += sd*sd*f;
+    openMean += mu; openVar += sd*sd;
+    if (f > 0 && mu > 0) left++;
+    players.push({ slot: S.slots[i] || '', pid,
+      name: pl.first_name ? `${pl.first_name} ${pl.last_name}` : (pid && pid !== '0' ? 'Player ' + pid : 'Empty'),
+      pos, team, opp: pr ? pr.opponent : '', inj, pts, mu, f, exp, g });
+  });
+  return { mean, varr, cur, left, openMean, openVar, players };
+}
+
+function price(a, b, live){
+  const mA = live ? a.mean : a.openMean, mB = live ? b.mean : b.openMean;
+  const v = live ? a.varr + b.varr : a.openVar + b.openVar;
+  let pA;
+  if (v <= 1e-9) pA = mA > mB ? 1 : mA < mB ? 0 : 0.5;
+  else pA = Phi((mA - mB) / Math.sqrt(v));
+  const d = mA - mB, ln = half(Math.abs(d));
+  return { pA, pB: 1-pA, mlA: american(pA), mlB: american(1-pA),
+    sprA: d >= 0 ? -ln : ln, sprB: d >= 0 ? ln : -ln, total: half(mA + mB), mA, mB };
+}
+
+async function refresh(full){
+  try {
+    if (full) await loadProj(S.week, true); else await loadProj(S.week);
+    const [mu] = await Promise.all([ j(`${SL}/v1/league/${LEAGUE}/matchups/${S.week}`), loadGames(S.week) ]);
+    S.matchups = mu; S.lastOk = Date.now();
+    $('banner').style.display = 'none';
+    $('dot').className = 'dot on';
+    render();
+  } catch (e) {
+    console.error(e);
+    $('dot').className = 'dot err';
+    const b = $('banner'); b.style.display = 'block';
+    b.textContent = "Couldn't reach Sleeper or ESPN just now. Showing the last odds; trying again in 30 seconds.";
+  }
+}
+
+// ---------- history (per viewer, this week) ----------
+function histKey(){ return `tss-hist-${S.nfl && S.nfl.season}-${S.week}`; }
+function loadHist(){ try { S.hist = JSON.parse(localStorage.getItem(histKey()) || '{}'); } catch { S.hist = {}; } }
+function pushHist(id, p){
+  const h = S.hist[id] = S.hist[id] || [];
+  const last = h[h.length-1];
+  if (!last || Math.abs(last.p - p) > 0.002 || Date.now() - last.t > 15*60*1000) h.push({ t: Date.now(), p: Math.round(p*1000)/1000 });
+  if (h.length > 400) h.splice(0, h.length - 400);
+}
+function saveHist(){ try { localStorage.setItem(histKey(), JSON.stringify(S.hist)); } catch {} }
+function spark(h, open){
+  const pts = [{ p: open }].concat(h || []);
+  if (pts.length < 2) return '';
+  const W = 300, H = 34, n = pts.length;
+  const xy = pts.map((q,i) => `${(i/(n-1)*W).toFixed(1)},${(H - 3 - q.p*(H-6)).toFixed(1)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+    <line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" stroke="var(--line2)" stroke-dasharray="3 4" stroke-width="1"/>
+    <polyline points="${xy}" fill="none" stroke="var(--green)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`;
+}
+
+// ---------- render ----------
+function moveCls(nowP, openP){ const d = nowP - openP; return Math.abs(d) < 0.02 ? '' : d > 0 ? 'up' : 'down'; }
+
+function teamRow(t, ev, ml, spr, ou, ouLabel, won, mv){
+  return `<div class="cols">
+    <div class="team">
+      ${t.av ? `<img class="av" src="${esc(t.av)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<div class="av"></div>'}
+      <div class="tn"><div class="n">${esc(t.name)}</div><div class="m">${esc(t.rec)} · proj ${fmt(ev.mean)}</div></div>
+      <div class="score">${fmt(ev.cur, 2)}</div>
+    </div>
+    <div class="btn ${ml ? mv : 'off'} ${won ? 'won' : ''}"><div class="l">ML</div><div class="o">${ml || (won ? 'WIN' : '—')}</div></div>
+    <div class="btn"><div class="l">${spr > 0 ? '+' + spr : spr}</div><div class="o">-110</div></div>
+    <div class="btn"><div class="l">${ouLabel} ${ou}</div><div class="o">-110</div></div>
+  </div>`;
+}
+
+function propsHTML(t, ev){
+  const rows = ev.players.map(p => {
+    const g = p.g;
+    const gs = !g ? 'Bye' : g.label;
+    const line = p.f > 0 && p.mu > 0 ? `O/U ${half(p.exp)}` : '—';
+    return `<div class="pl">
+      <div class="slot">${esc(p.slot === 'SUPER_FLEX' ? 'SF' : p.slot === 'FLEX' ? 'FLX' : p.slot)}</div>
+      <div class="who"><div>${esc(p.name)}</div><div>${esc(p.pos)} · ${esc(p.team)}${p.opp ? ' vs ' + esc(p.opp) : ''}${p.inj ? ` · <span class="inj">${esc(p.inj)}</span>` : ''}</div></div>
+      <div class="gs ${g && g.state === 'in' ? 'in' : ''}">${esc(gs)}</div>
+      <div class="pts">${fmt(p.pts)}</div>
+      <div class="ou ${line === '—' ? 'na' : ''}">${line}</div>
+    </div>`;
+  }).join('');
+  return `<div class="ptitle">${esc(t.name)}</div>${rows}`;
+}
+
+function render(){
+  const byId = {};
+  for (const m of S.matchups) { if (m.matchup_id == null) continue; (byId[m.matchup_id] = byId[m.matchup_id] || []).push(m); }
+  const ids = Object.keys(byId).map(Number).sort((a,b) => a-b);
+  let liveGames = 0, done = 0, pre = 0;
+  for (const g of Object.values(S.games)) { if (g.state === 'in') liveGames++; else if (g.state === 'post') done++; else pre++; }
+  $('intro').innerHTML = `<span class="chip"><b>${S.week === Number(S.nfl.display_week || S.nfl.week) ? 'This week' : 'Week ' + S.week}</b></span>
+    <span class="chip">NFL games: <b>${Math.round(liveGames/2)}</b> live · <b>${Math.round(done/2)}</b> final · <b>${Math.round(pre/2)}</b> upcoming</span>
+    <span class="chip">Refreshes every <b>30s</b></span>`;
+
+  const html = ids.map(id => {
+    const [a, b] = byId[id];
+    if (!b) return '';
+    const ta = teamInfo(a.roster_id), tb = teamInfo(b.roster_id);
+    const ea = evalTeam(a), eb = evalTeam(b);
+    const live = price(ea, eb, true), open = price(ea, eb, false);
+    pushHist(id, live.pA);
+    const settled = ea.left + eb.left === 0 && (ea.cur + eb.cur) > 0 && Object.values(S.games).every(g => g.state === 'post');
+    const anyStarted = ea.players.concat(eb.players).some(p => p.g && p.g.state !== 'pre');
+    const status = settled ? '<span class="tag final">FINAL</span>' : anyStarted ? '<span class="tag live">LIVE</span>' : '<span class="tag pre">PREGAME</span>';
+    const fav = live.pA >= 0.5 ? ta.name : tb.name, favP = Math.max(live.pA, live.pB);
+    const mvA = moveCls(live.pA, open.pA), mvB = moveCls(live.pB, open.pB);
+    return `<article class="card ${S.open.has(id) ? 'open' : ''}" data-id="${id}">
+      <div class="card-h"><span>Matchup ${id}</span>${status}</div>
+      <div class="cols head"><div></div><div>Moneyline</div><div>Spread</div><div>Total</div></div>
+      ${teamRow(ta, ea, settled ? null : live.mlA, live.sprA, live.total, 'O', settled && ea.cur > eb.cur, mvA)}
+      ${teamRow(tb, eb, settled ? null : live.mlB, live.sprB, live.total, 'U', settled && eb.cur > ea.cur, mvB)}
+      <div class="prob">
+        <div class="pbar"><i style="width:${(live.pA*100).toFixed(1)}%"></i><i style="width:${(live.pB*100).toFixed(1)}%"></i></div>
+        <div class="prow">
+          <span><b>${(live.pA*100).toFixed(0)}%</b> · ${esc(ta.name)}</span>
+          <span>${esc(tb.name)} · <b>${(live.pB*100).toFixed(0)}%</b></span>
+        </div>
+        <div class="prow">
+          <span>Players left: <b>${ea.left}</b> vs <b>${eb.left}</b></span>
+          <span>Opening ML: <b>${open.mlA || '—'}</b> / <b>${open.mlB || '—'}</b></span>
+        </div>
+        ${spark(S.hist[id], open.pA)}
+      </div>
+      <div class="foot"><button type="button" data-toggle="${id}">${S.open.has(id) ? 'Hide' : 'Show'} player props</button></div>
+      <div class="props">${propsHTML(ta, ea)}${propsHTML(tb, eb)}</div>
+    </article>`;
+  }).join('');
+  $('grid').innerHTML = html || '<p class="sub">No matchups found for this week yet.</p>';
+  saveHist();
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-toggle]'); if (!t) return;
+  const id = Number(t.dataset.toggle);
+  S.open.has(id) ? S.open.delete(id) : S.open.add(id);
+  render();
+});
+$('week').addEventListener('change', async e => {
+  S.week = Number(e.target.value); S.open.clear(); loadHist();
+  $('grid').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
+  await refresh(true);
+});
+setInterval(() => {
+  if (!S.lastOk) return;
+  const s = Math.round((Date.now() - S.lastOk)/1000);
+  $('fresh').textContent = s < 5 ? 'Live · just updated' : `Live · updated ${s}s ago`;
+}, 1000);
+setInterval(() => { if (!document.hidden && S.nfl) refresh(false); }, REFRESH_MS);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.nfl && Date.now() - S.lastOk > REFRESH_MS) refresh(false); });
+
+(async () => {
+  try { await loadStatic(); loadHist(); await refresh(true); }
+  catch (e) {
+    console.error(e); $('dot').className = 'dot err';
+    const b = $('banner'); b.style.display = 'block'; b.textContent = "Couldn't load the league from Sleeper. Refresh the page to try again.";
+  }
+})();
+})();
+</script>
+</body>
+</html>
